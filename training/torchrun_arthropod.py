@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import shlex
 import subprocess
 import sys
@@ -102,6 +103,9 @@ def main() -> int:
     repo_root = Path(__file__).resolve().parent.parent
     dataset_dir = (repo_root / args.dataset_dir).resolve() if not Path(args.dataset_dir).is_absolute() else Path(args.dataset_dir)
     output_dir = (repo_root / args.output_dir).resolve() if not Path(args.output_dir).is_absolute() else Path(args.output_dir)
+    cpu_threads = os.cpu_count() or 1
+    omp_threads = max(1, cpu_threads // args.nproc_per_node)
+    os.environ["OMP_NUM_THREADS"] = str(omp_threads)
 
     cmd = _build_command(
         repo_root=repo_root,
