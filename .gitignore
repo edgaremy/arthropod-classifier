@@ -3,3 +3,4 @@ dataset/
 output/
 src/modified_timm/__pycache__/
 src/modified_timm/tweaks/__pycache__/
+training/__pycache__/
