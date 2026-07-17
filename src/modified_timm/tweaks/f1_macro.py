@@ -252,10 +252,11 @@ class MacroF1ValidationTweak:
             amp_autocast=train_module.suppress,
             loss_scaler=None,
             model_dtype=None,
-            model_ema=None,
             mixup_fn=None,
             num_updates_total=None,
             naflex_mode=False,
+            scheduled_batch_mode=False,
+            batch_size_reference=None,
         ):
             all_preds: list[int] = []
             all_targets: list[int] = []
@@ -278,6 +279,8 @@ class MacroF1ValidationTweak:
                     mixup_fn=mixup_fn,
                     num_updates_total=num_updates_total,
                     naflex_mode=naflex_mode,
+                    scheduled_batch_mode=scheduled_batch_mode,
+                    batch_size_reference=batch_size_reference,
                 )
 
             class _TaskCaptureProxy:
@@ -314,6 +317,8 @@ class MacroF1ValidationTweak:
                 mixup_fn=mixup_fn,
                 num_updates_total=num_updates_total,
                 naflex_mode=naflex_mode,
+                scheduled_batch_mode=scheduled_batch_mode,
+                batch_size_reference=batch_size_reference,
             )
 
             all_preds, all_targets = cls._gather_lists_distributed(args, all_preds, all_targets)

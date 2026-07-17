@@ -1,4 +1,4 @@
-dataset/
+dataset
 .vscode/
 output/
 src/modified_timm/__pycache__/
