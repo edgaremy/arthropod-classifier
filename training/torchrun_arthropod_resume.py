@@ -33,7 +33,8 @@ from pathlib import Path
 DEFAULT_NPROC_PER_NODE = 2
 DEFAULT_DATASET_DIR = "dataset"
 DEFAULT_OUTPUT_DIR = "output/arthropod-classifier"
-DEFAULT_CHECKPOINT = ""
+# DEFAULT_CHECKPOINT = "output/arthropod-classifier/20260610-152512-convnextv2_base_fcmae_ft_in22k_in1k_384-384/checkpoint-30.pth.tar"
+DEFAULT_CHECKPOINT = "output/arthropod-classifier/20260916-115507-convnextv2_base_fcmae_ft_in22k_in1k_384-384/checkpoint-41.pth.tar"
 DEFAULT_RESUME = True  # Resume full model and optimizer state from checkpoint[]
 
 
