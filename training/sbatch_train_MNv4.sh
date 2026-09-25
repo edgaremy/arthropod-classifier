@@ -132,7 +132,7 @@ fi
 srun --export=ALL gbind $ARM_PYTHON \
     -u src/train_arthropod.py \
     --data-dir /work/datasets/arthropod \
-    --model convnextv2_base.fcmae_ft_in22k_in1k_384 \
+    --model timm/mobilenetv4_hybrid_medium.ix_e550_r384_in1k \
     --pretrained \
     --input-size 3 384 384 \
     --class-map /work/datasets/arthropod/class-mapping.txt \
@@ -156,9 +156,9 @@ srun --export=ALL gbind $ARM_PYTHON \
     --bce-loss \
     --amp \
     --eval-metric f1_macro \
-    --output output/arthropod-classifier \
+    --output output/arthropod-classifier > $LOG_FILE 2>&1 \
     --checkpoint-hist 5 \
-    --resume output/arthropod-classifier/20260923-100746-convnextv2_base_fcmae_ft_in22k_in1k_384-384/checkpoint-75.pth.tar \
-    --start-epoch 76 > $LOG_FILE 2>&1
+    --resume output/arthropod-classifier/20260923-100748-mobilenetv4_hybrid_medium_ix_e550_r384_in1k-384/checkpoint-16.pth.tar \
+    --start-epoch 17 > $LOG_FILE 2>&1
 
 echo "Training completed successfully. Log saved to $LOG_FILE"

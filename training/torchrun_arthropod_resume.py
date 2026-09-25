@@ -151,6 +151,8 @@ def _build_command(
         "f1_macro",
         "--output",
         str(output_dir),
+        "--checkpoint-hist",
+        "5",
     ]
 
     if resume and checkpoint:
