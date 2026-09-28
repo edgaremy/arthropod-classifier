@@ -158,7 +158,7 @@ srun --export=ALL gbind $ARM_PYTHON \
     --eval-metric f1_macro \
     --output output/arthropod-classifier > $LOG_FILE 2>&1 \
     --checkpoint-hist 5 \
-    --resume output/arthropod-classifier/20260923-100748-mobilenetv4_hybrid_medium_ix_e550_r384_in1k-384/checkpoint-16.pth.tar \
-    --start-epoch 17 > $LOG_FILE 2>&1
+    --resume output/arthropod-classifier/20260927-003354-mobilenetv4_hybrid_medium_ix_e550_r384_in1k-384/checkpoint-56.pth.tar \
+    --start-epoch 57 > $LOG_FILE 2>&1
 
 echo "Training completed successfully. Log saved to $LOG_FILE"
