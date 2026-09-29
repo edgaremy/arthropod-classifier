@@ -12,6 +12,13 @@ There are two jobs, each with a local launcher and a cluster (SBATCH) variant:
 | Metrics validation (Acc@1/5, macro-F1, per-class F1) | `torchrun_validation.py` | `sbatch_validation.sh` |
 | Sparse top-k prediction saving | `torchrun_save_predictions.py` | `sbatch_save_predictions.sh` |
 
+Post-processing of the saved predictions (CPU only, x86 env, no GPU/ARM):
+
+| | Local | Cluster (CPU partition) |
+|---|---|---|
+| F1-macro vs confidence threshold | `metrics/F1-macro_threshold.py` | `metrics/sbatch_F1-macro_threshold.sh` |
+| Taxonomy-level metrics (species → class) | `metrics/taxonomy_metrics.py` | `metrics/sbatch_taxonomy_metrics.sh` |
+
 Both Python scripts follow the training layout in one file: by default they are
 **launcher mode** wrappers that build and run a `torchrun --nproc-per-node 1`
 command re-invoking themselves with `--entry`; in **entry mode** they load the
@@ -128,4 +135,110 @@ file already exists, to protect the artifact from accidental overwrites.
 ```bash
 cd /users/p26060/p26060rmdg/CODE/arthropod-classifier
 sbatch validation/sbatch_save_predictions.sh
+```
+
+## Metrics from saved predictions
+
+### `metrics/F1-macro_threshold.py`
+
+Sweeps a minimum confidence threshold from 0 (no threshold) to 1 and plots
+F1-macro against it, using only the saved top-k predictions (no model run, no
+GPU). A top-1 prediction whose confidence is below the threshold is not
+counted: it contributes no TP and no FP for the predicted class (a
+low-confidence wrong prediction no longer penalizes that class' precision);
+under the main curve the rejection counts as a miss (FN) for the true class.
+The plot also shows a "covered only" variant (rejected images excluded
+entirely) and the coverage (fraction of predictions still counted). F1-macro
+is computed over all 24,206 classes with zero_division=0, matching the
+training's `f1_macro`.
+
+```bash
+python validation/metrics/F1-macro_threshold.py \
+    [--predictions validation/predictions/test_checkpoint-98_top1000_predictions.npz] \
+    [--step 0.005]
+```
+
+Outputs, under `validation/metrics/F1-macro/`:
+
+- `plots/<predictions>_vs_threshold.png` - the plot, with the best threshold
+  annotated
+- `<predictions>_threshold_sweep.csv` - threshold, f1_macro,
+  f1_macro_covered, coverage per point
+
+### `metrics/sbatch_F1-macro_threshold.sh`
+
+Cluster equivalent on the CPU partition: MicroShared CPU (`micro-cpu`, 16
+task slots, non-exclusive), x86 conda env, single `srun -n 1` process. The
+repo and the predictions file already live on GPFS (`$WORK`). It fails early
+if the predictions file is missing.
+
+```bash
+cd /users/p26060/p26060rmdg/CODE/arthropod-classifier
+sbatch validation/metrics/sbatch_F1-macro_threshold.sh
+```
+
+### `metrics/taxonomy_metrics.py`
+
+Computes metrics at five taxonomic scales - species, genus, family, order,
+class - by grouping the stored species probabilities per taxon (the taxonomy
+comes from the dataset's `class-names.csv`, joined on `class-mapping.txt`).
+For each level: top-1/top-5 accuracy, and per-group precision/recall/F1
+(one-vs-rest, from the top-1 group prediction); the -macro versions average
+over groups (zero_division=0, matching the training's `f1_macro`).
+
+```bash
+python validation/metrics/taxonomy_metrics.py \
+    [--predictions validation/predictions/test_checkpoint-98_top1000_predictions.npz] \
+    [--class-names dataset/class-names.csv] [--class-mapping dataset/class-mapping.txt] \
+    [--levels species,genus,family,order,class] [--ignore-ungrouped] [--no-renormalize]
+```
+
+Behavior details:
+
+- Group scores are the summed species probabilities, renormalized per row:
+  the stored top-1000 probabilities are a truncated softmax, so the raw
+  sums miss the tail mass. Per-row renormalization does not change
+  top-1/top-5 decisions (positive scaling preserves ranking); disable with
+  `--no-renormalize`.
+- Species missing a taxon (e.g. an empty `order`) form a synthetic
+  "(no `<level>`)" group by default. With `--ignore-ungrouped`, images
+  whose true species has no group are excluded from that level (a top-1
+  prediction falling into the dropped group can then be neither TP nor FP);
+  the number of images without a group and the number ignored are reported
+  per level in `summary.csv`.
+
+Outputs, under `validation/metrics/taxonomy/`:
+
+```
+taxonomy/
+├── group_mapping.csv      # shared: species index -> taxon names and ids (the
+│                          #   aggregation table actually used)
+└── <model>/               # e.g. convnextv2_base (from the predictions
+    │                      #   metadata; one directory per model)
+    ├── summary.csv        # one row per level: n_groups, top1_acc, top5_acc,
+    │                      #   precision_macro, recall_macro, f1_macro,
+    │                      #   f1_macro_supported, n_images_without_group,
+    │                      #   n_ignored, ...
+    ├── per_group/<level>.csv   # one row per group: n_species, n_test_images,
+    │                           #   tp/fp/fn, precision, recall, f1, top1, top5
+    └── <predictions stem>_taxonomy_metrics.json   # metadata (input files +
+                                                    #   sha256, options used)
+```
+
+`f1_macro` averages over all groups at the level (zero-division groups
+count as 0, consistent with the species-level definition);
+`f1_macro_supported` averages only groups with test images.
+
+### `metrics/sbatch_taxonomy_metrics.sh`
+
+Cluster equivalent on the CPU partition: MicroShared CPU (`micro-cpu`, 16
+task slots, non-exclusive), x86 conda env, single `srun -n 1` process
+(about 15-25 minutes for ~1M images over all five levels). It fails early
+if the predictions file or `class-names.csv` is missing. Taxonomy options
+(renormalization, `--ignore-ungrouped`) can be set via the `TAXONOMY_ARGS`
+variable inside the script.
+
+```bash
+cd /users/p26060/p26060rmdg/CODE/arthropod-classifier
+sbatch validation/metrics/sbatch_taxonomy_metrics.sh
 ```
