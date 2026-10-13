@@ -43,8 +43,15 @@ mkdir -p validation/predictions
 DATASET_DIR=/work/datasets/arthropod
 NUM_CLASSES=$(wc -l < $DATASET_DIR/class-mapping.txt | awk '{print $1}')
 
-# Best checkpoint from training (hardcoded like sbatch_train.sh)
-CHECKPOINT=output/arthropod-classifier/20260926-234704-convnextv2_base_fcmae_ft_in22k_in1k_384-384/checkpoint-98.pth.tar
+# Model architecture & Best checkpoint from training
+
+# convnextv2:
+# MODEL=convnextv2_base.fcmae_ft_in22k_in1k_384
+# CHECKPOINT=output/arthropod-classifier/20260926-234704-convnextv2_base_fcmae_ft_in22k_in1k_384-384/checkpoint-98.pth.tar
+
+# mobilenetv4:
+MODEL=timm/mobilenetv4_hybrid_medium.ix_e550_r384_in1k
+CHECKPOINT=/users/p26060/p26060rmdg/CODE/arthropod-classifier/output/arthropod-classifier/20261008-154820-mobilenetv4_hybrid_medium_ix_e550_r384_in1k-384/checkpoint-96.pth.tar
 
 # Top-k probabilities to save per image
 TOP_K=1000
@@ -62,6 +69,7 @@ PREDICTIONS_FILE="validation/predictions/test_${CKPT_NAME%.pth.tar}_top${TOP_K}_
 
 echo "Starting prediction saving on ARM GPU nodes: $SLURM_JOB_NODELIST"
 echo "Checkpoint: $CHECKPOINT"
+echo "Model: $MODEL"
 echo "Dataset: $DATASET_DIR (test split)"
 echo "Num classes: $NUM_CLASSES"
 echo "Top-k: $TOP_K"
@@ -131,7 +139,7 @@ srun --export=ALL gbind $ARM_PYTHON \
     --entry \
     --data-dir $DATASET_DIR \
     --split test \
-    --model convnextv2_base.fcmae_ft_in22k_in1k_384 \
+    --model $MODEL \
     --num-classes $NUM_CLASSES \
     --input-size 3 384 384 \
     --class-map $DATASET_DIR/class-mapping.txt \
